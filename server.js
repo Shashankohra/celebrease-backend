@@ -7,17 +7,11 @@ app.use(express.json());
 const authRoutes = require("./routes/auth");
 app.use("/", authRoutes);
 
-// Root route
+// Root route (VERY IMPORTANT for Render)
 app.get("/", (req, res) => {
   res.send("Celebrease backend is running 🚀");
 });
 
-// Health check (optional but recommended)
-app.get("/health", (req, res) => {
-  res.json({ status: "OK" });
-});
-
-// Railway PORT (IMPORTANT)
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
