@@ -1,27 +1,29 @@
 const express = require("express");
+const cors = require("cors");
+
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 
-// Import routes
+// Routes
 const authRoutes = require("./routes/auth");
+app.use("/api", authRoutes);
 
-// ROOT (required for Railway)
+// Root
 app.get("/", (req, res) => {
   res.send("Celebrease backend is running 🚀");
 });
 
-// Health route
+// Health
 app.get("/health", (req, res) => {
   res.json({ status: "OK" });
 });
 
-// Mount API
-app.use("/api", authRoutes);
+// ✅ DO NOT CHANGE THIS
+const PORT = process.env.PORT || 5000;
 
-// IMPORTANT: Railway binding
-const PORT = process.env.PORT || 8080;
-
+// ✅ VERY IMPORTANT
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
