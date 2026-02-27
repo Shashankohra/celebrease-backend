@@ -1,65 +1,61 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../db");
-const jwt = require("jsonwebtoken");
 
+// TEMP in-memory store (replace with DB later)
+let otpStore = {};
+
+// ---------------------
 // SEND OTP
-router.post("/send-otp", async (req, res) => {
+// ---------------------
+router.post("/send-otp", (req, res) => {
   const { mobile } = req.body;
 
-  if (!mobile) {
-    return res.status(400).json({ msg: "Mobile required" });
+  if (!mobile || mobile.length !== 10) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid mobile number"
+    });
   }
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const expires = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
+  const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
-  await pool.query(
-    "INSERT INTO otps (mobile, otp, expires_at) VALUES ($1,$2,$3)",
-    [mobile, otp, expires]
-  );
+  otpStore[mobile] = otp;
 
-  console.log("OTP:", otp); // For testing
+  console.log(`OTP for ${mobile}: ${otp}`);
 
-  res.json({ msg: "OTP sent", otp }); // remove otp in production
+  res.json({
+    success: true,
+    message: "OTP sent successfully",
+    otp // remove in production
+  });
 });
 
+// ---------------------
 // VERIFY OTP
-router.post("/verify-otp", async (req, res) => {
+// ---------------------
+router.post("/verify-otp", (req, res) => {
   const { mobile, otp } = req.body;
 
-  const result = await pool.query(
-    "SELECT * FROM otps WHERE mobile=$1 AND otp=$2 ORDER BY id DESC LIMIT 1",
-    [mobile, otp]
-  );
-
-  if (result.rows.length === 0) {
-    return res.status(400).json({ msg: "Invalid OTP" });
+  if (!otpStore[mobile]) {
+    return res.status(400).json({
+      success: false,
+      message: "OTP not found"
+    });
   }
 
-  const record = result.rows[0];
-
-  if (new Date(record.expires_at) < new Date()) {
-    return res.status(400).json({ msg: "OTP expired" });
+  if (otpStore[mobile] !== otp) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid OTP"
+    });
   }
 
-  // Check user exists
-  let user = await pool.query("SELECT * FROM users WHERE mobile=$1", [mobile]);
+  delete otpStore[mobile];
 
-  if (user.rows.length === 0) {
-    user = await pool.query(
-      "INSERT INTO users (mobile) VALUES ($1) RETURNING *",
-      [mobile]
-    );
-  }
-
-  const token = jwt.sign(
-    { id: user.rows[0].id, mobile },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-
-  res.json({ token, user: user.rows[0] });
+  res.json({
+    success: true,
+    message: "OTP verified successfully"
+  });
 });
 
 module.exports = router;
