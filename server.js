@@ -3,17 +3,27 @@ const app = express();
 
 app.use(express.json());
 
-// Routes
+// Import routes
 const authRoutes = require("./routes/auth");
-app.use("/", authRoutes);
 
-// Root route (VERY IMPORTANT for Render)
+// Root route (VERY IMPORTANT for Railway health check)
 app.get("/", (req, res) => {
   res.send("Celebrease backend is running 🚀");
 });
 
-const PORT = process.env.PORT || 5000;
+// Health check route
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "OK",
+    message: "Server healthy"
+  });
+});
 
-app.listen(PORT, () => {
+// Mount routes
+app.use("/api", authRoutes);
+
+// Railway PORT binding
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
